@@ -1,25 +1,115 @@
-import logo from './logo.svg';
-import './App.css';
+import {Component} from 'react'
+import {Route, Switch, Redirect} from 'react-router-dom'
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+import LoginForm from './components/LoginForm'
+import Home from './components/Home'
+import Products from './components/Products'
+import ProductItemDetails from './components/ProductItemDetails'
+import Cart from './components/Cart'
+import NotFound from './components/NotFound'
+import ProtectedRoute from './components/ProtectedRoute'
+import CartContext from './context/CartContext'
+
+import './App.css'
+
+class App extends Component {
+  state = {
+    cartList: [],
+  }
+
+
+  decrementCartItemQuantity = id => {
+    const {cartList} = this.state
+    const productItem = cartList.find(eachProduct => eachProduct.id === id)
+
+    if (productItem.quantity > 1) {
+      this.setState(prevState => ({
+        cartList: prevState.cartList.map(eachProduct => {
+          if (eachProduct.id === productItem.id) {
+            return {...eachProduct, quantity: productItem.quantity - 1}
+          }
+          return eachProduct
+        }),
+      }))
+    } else {
+      this.setState(prevState => ({
+        cartList: prevState.cartList.filter(
+          eachProduct => eachProduct.id !== id,
+        ),
+      }))
+    }
+  }
+
+  incrementCartItemQuantity = id => {
+    this.setState(prevState => ({
+      cartList: prevState.cartList.map(eachProduct => {
+        if (eachProduct.id === id) {
+          return {...eachProduct, quantity: eachProduct.quantity + 1}
+        }
+        return eachProduct
+      }),
+    }))
+  }
+
+  addCartItem = product => {
+    const {cartList} = this.state
+    const productObj = cartList.find(
+      eachProduct => eachProduct.id === product.id,
+    )
+    if (productObj) {
+      this.setState(prevState => ({
+        cartList: prevState.cartList.map(eachItem => {
+          if (eachItem.id === productObj.id) {
+            return {...eachItem, quantity: eachItem.quantity + product.quantity}
+          }
+          return eachItem
+        }),
+      }))
+    } else {
+      this.setState(prevState => ({cartList: [...prevState.cartList, product]}))
+    }
+  }
+
+  removeCartItem = id => {
+    this.setState(prevState => ({
+      cartList: prevState.cartList.filter(eachProduct => eachProduct.id !== id),
+    }))
+  }
+
+  removeAllCartItems = () => {
+    this.setState({cartList: []})
+  }
+
+  render() {
+    const {cartList} = this.state
+
+    return (
+      <CartContext.Provider
+        value={{
+          cartList,
+          addCartItem: this.addCartItem,
+          removeCartItem: this.removeCartItem,
+          incrementCartItemQuantity: this.incrementCartItemQuantity,
+          decrementCartItemQuantity: this.decrementCartItemQuantity,
+          removeAllCartItems: this.removeAllCartItems,
+        }}
+      >
+        <Switch>
+          <Route exact path="/login" component={LoginForm} />
+          <ProtectedRoute exact path="/" component={Home} />
+          <ProtectedRoute exact path="/products" component={Products} />
+          <ProtectedRoute
+            exact
+            path="/products/:id"
+            component={ProductItemDetails}
+          />
+          <ProtectedRoute exact path="/cart" component={Cart} />
+          <Route path="/not-found" component={NotFound} />
+          <Redirect to="not-found" />
+        </Switch>
+      </CartContext.Provider>
+    )
+  }
 }
 
-export default App;
+export default App
